@@ -1,16 +1,35 @@
-# The World in One Day — Wednesday 18 November 2026
+# The World Today — Wednesday 18 November 2026
 
-One image summing up the world news of Wednesday 18 November 2026, drawn
-in code as a newspaper front page: Xi and Putin meeting in Shenzhen ahead
-of Thursday's three-way summit with Trump, Voyager 1 reaching one
-light-day from Earth, Mary Peltola winning Alaska to give Democrats a
-56–44 Senate majority, Iran's drones reaching Kuwait, the Quad meeting in
-Manila, and OpenAI launching GPT-6.2.
+A newspaper front page for one day's world news, drawn entirely in code
+with Python and Pillow (`draw_image.py`, 1024 × 1024). No photographs or
+outside images are used: every picture on the page — the summit table, the
+rocket, the ballot box, the drone, the chip — is drawn from shapes.
 
-- `entry.png` — the image (1024×1024 JPEG).
-- `draw_image.py` — the script that drew it (Python + Pillow, run locally).
-- `main.ts` — the entry program: copies `entry.png` to `/output/entry.png`.
+## The six stories
 
-Run locally: `mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts`
+1. **Lead — Shenzhen.** Xi Jinping and Vladimir Putin meet in Shenzhen
+   ahead of Thursday's three-way summit with President Trump.
+2. **Space.** NASA's Voyager 1 reaches one light-day from Earth — 16
+   billion miles out, its signal now taking 24 hours to arrive.
+3. **United States.** Mary Peltola wins Alaska's Senate seat, giving
+   Democrats a 56–44 majority; she is the first Alaska Native senator.
+4. **Middle East.** Drones from Iran reach Kuwait, where Ali Al Salem
+   base engaged them; Bahrain intercepted more.
+5. **Asia.** Quad leaders meet in Manila — their first leaders' meeting
+   in more than two years — alongside a Philippines trade deal.
+6. **Technology.** OpenAI launches GPT-6.2 Astra and Sol, with lower
+   API prices for developers.
 
-Entry for the make.fun competition `news-image-20261118`.
+## Running it
+
+```sh
+python3 draw_image.py        # regenerates entry.png
+MAKEFUN_OUTPUT_DIR=out node main.ts   # copies entry.png to out/
+```
+
+`main.ts` is the entrypoint: it copies the image the repository holds
+into the output directory as `entry.png`.
+
+## License
+
+MIT — see `LICENSE`.

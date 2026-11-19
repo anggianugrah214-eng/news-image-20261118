@@ -1,209 +1,246 @@
 #!/usr/bin/env python3
-"""Draw the 18 November 2026 world-news front page (entry.png).
+"""Draw a newspaper front page for Wednesday 18 November 2026.
 
-Flat, code-drawn newspaper front page: masthead with the date, one lead
-story and five more across regions and fields. Every headline and figure
-comes from the day's reporting (wires and broadcasters, 18 Nov 2026).
-Run: python3 draw_image.py  -> writes entry.png (1024x1024, JPEG).
+Everything is drawn with Pillow shapes and text; no external images.
+Output: entry.png, 1024 x 1024, deterministic (no randomness, no dates
+taken from the clock).
 """
-import math
 
 from PIL import Image, ImageDraw, ImageFont
+import math
 
-W, H = 1024, 1024
-PAPER = (246, 241, 231)
-INK = (26, 26, 26)
-NAVY = (20, 33, 61)
-GOLD = (201, 162, 39)
-RED = (185, 28, 28)
-GREY = (90, 90, 90)
-WHITE = (255, 253, 248)
+W = H = 1024
+PAPER = (247, 243, 232)
+INK = (24, 24, 28)
+RED = (158, 28, 32)
+BLUE = (28, 64, 128)
+GOLD = (196, 148, 44)
+TEAL = (18, 96, 92)
+GREY = (96, 96, 100)
+CARD = (255, 255, 252)
 
-SERIF = "/usr/share/fonts/truetype/noto/NotoSerif-Bold.ttf"
-SANS = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
-SANS_R = "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"
+FONT_DIR = "/usr/share/fonts/truetype/dejavu/"
+SERIF = FONT_DIR + "DejaVuSerif.ttf"
+SERIF_B = FONT_DIR + "DejaVuSerif-Bold.ttf"
+SANS = FONT_DIR + "DejaVuSans.ttf"
+SANS_B = FONT_DIR + "DejaVuSans-Bold.ttf"
 
 
 def font(path, size):
     return ImageFont.truetype(path, size)
 
 
-def wrap(draw, text, fnt, max_w):
-    words, lines, cur = text.split(), [], ""
-    for w in words:
-        trial = (cur + " " + w).strip()
-        if draw.textlength(trial, font=fnt) <= max_w:
+def wrap(draw, text, face, width):
+    """Greedy word wrap returning a list of lines fitting `width` pixels."""
+    lines, cur = [], ""
+    for word in text.split():
+        trial = (cur + " " + word).strip()
+        if draw.textlength(trial, font=face) <= width or not cur:
             cur = trial
         else:
-            if cur:
-                lines.append(cur)
-            cur = w
+            lines.append(cur)
+            cur = word
     if cur:
         lines.append(cur)
     return lines
 
 
-def text_block(draw, x, y, text, fnt, color, max_w, leading):
-    for ln in wrap(draw, text, fnt, max_w):
-        draw.text((x, y), ln, font=fnt, fill=color)
+def para(draw, xy, text, face, width, leading, color=INK):
+    x, y = xy
+    for line in wrap(draw, text, face, width):
+        draw.text((x, y), line, font=face, fill=color)
         y += leading
     return y
 
 
-def kicker(draw, x, y, s, fnt):
-    draw.text((x, y), s, font=fnt, fill=RED)
-    return y + 26
+def rule(draw, x0, y, x1, weight=2, color=INK):
+    draw.line([(x0, y), (x1, y)], fill=color, width=weight)
 
 
-img = Image.new("RGB", (W, H), PAPER)
-d = ImageDraw.Draw(img)
-
-# ---------- masthead: 24..168 ----------
-d.rectangle([28, 24, 996, 168], fill=NAVY)
-d.text((52, 38), "T H E   W O R L D   I N   O N E   D A Y",
-       font=font(SANS, 21), fill=GOLD)
-d.text((52, 64), "WEDNESDAY 18 NOVEMBER 2026",
-       font=font(SERIF, 54), fill=WHITE)
-d.rectangle([52, 132, 972, 135], fill=GOLD)
-d.text((52, 142), "Six stories that defined the day — from Shenzhen to deep space, Manila to Alaska",
-       font=font(SANS_R, 18), fill=(200, 205, 220))
-
-# ---------- lead story: 180..484 ----------
-d.rectangle([28, 180, 996, 484], fill=WHITE, outline=INK, width=2)
-# illustration: dusk over the Shenzhen skyline (left half)
-d.rectangle([30, 182, 430, 482], fill=(30, 44, 78))
-for sx, sy, r in [(70, 210, 2), (140, 226, 2), (250, 202, 2), (330, 232, 2),
-                  (110, 258, 2), (300, 262, 2), (390, 212, 2), (200, 240, 2)]:
-    d.ellipse([sx - r, sy - r, sx + r, sy + r], fill=WHITE)
-d.ellipse([352, 200, 398, 246], fill=(235, 220, 170))  # low sun
-# skyline towers
-for bx, bw, bh in [(44, 44, 150), (96, 30, 190), (134, 52, 120),
-                   (196, 34, 210), (238, 46, 140), (292, 30, 175),
-                   (330, 56, 110), (392, 30, 150)]:
-    d.rectangle([bx, 482 - bh, bx + bw, 482], fill=(12, 20, 38))
-    for wy in range(482 - bh + 12, 470, 22):
-        for wx in range(bx + 6, bx + bw - 4, 12):
-            d.rectangle([wx, wy, wx + 4, wy + 6], fill=(240, 200, 90))
-# three flag circles: China, Russia, U.S.
-d.ellipse([66, 376, 126, 436], fill=(222, 41, 16), outline=WHITE, width=2)
-d.text((84, 392), "*", font=font(SANS, 30), fill=GOLD)
-d.ellipse([146, 376, 206, 436], fill=WHITE, outline=NAVY, width=2)
-d.rectangle([146, 376, 206, 396], fill=(0, 57, 166))
-d.rectangle([146, 416, 206, 436], fill=(213, 0, 50))
-d.ellipse([226, 376, 286, 436], fill=(60, 59, 110), outline=WHITE, width=2)
-d.text((238, 390), "USA", font=font(SANS, 16), fill=WHITE)
-d.text((44, 452), "SHENZHEN, CHINA", font=font(SANS, 16), fill=(180, 200, 220))
-# lead text (right half)
-tx = 452
-y = kicker(d, tx, 198, "ASIA  •  LEAD STORY", font(SANS, 20))
-y = text_block(d, tx, y, "XI AND PUTIN MEET IN SHENZHEN BEFORE TRUMP TALKS",
-               font(SANS, 40), INK, 996 - tx - 24, 48)
-y += 8
-text_block(d, tx, y,
-           "China's Xi and Russia's Putin opened APEC in Shenzhen. A rare "
-           "three-way summit with U.S. President Trump is set for Thursday.",
-           font(SANS_R, 23), (60, 60, 60), 996 - tx - 24, 30)
-
-# ---------- middle row: 496..736 ----------
-# Voyager 1
-d.rectangle([28, 496, 500, 736], fill=WHITE, outline=INK, width=2)
-d.rectangle([30, 498, 498, 600], fill=(5, 8, 20))  # deep space
-for sx, sy, r in [(70, 520, 2), (150, 560, 2), (260, 515, 2), (350, 570, 2),
-                  (430, 530, 2), (200, 585, 2), (320, 545, 1), (110, 585, 1)]:
-    d.ellipse([sx - r, sy - r, sx + r, sy + r], fill=WHITE)
-# probe: bus, dish, boom
-d.rectangle([150, 540, 210, 570], fill=(180, 180, 190), outline=(120, 120, 130), width=2)
-d.polygon([(210, 542), (258, 528), (258, 584), (210, 570)], fill=(200, 200, 210),
-          outline=(120, 120, 130))
-d.line([150, 555, 96, 540], fill=(200, 200, 210), width=4)
-d.line([150, 555, 96, 572], fill=(200, 200, 210), width=4)
-d.ellipse([88, 532, 104, 548], fill=GOLD)
-d.text((264, 545), "16 BN MILES", font=font(SERIF, 28), fill=GOLD)
-y = kicker(d, 44, 608, "SPACE  •  SCIENCE", font(SANS, 18))
-y = text_block(d, 44, y, "VOYAGER 1 REACHES ONE LIGHT-DAY FROM EARTH",
-               font(SANS, 29), INK, 500 - 44 - 16, 34)
-text_block(d, 44, y + 4, "First human-made object that far out.",
-           font(SANS_R, 19), (60, 60, 60), 500 - 44 - 16, 25)
-
-# Peltola / Senate
-d.rectangle([524, 496, 996, 736], fill=WHITE, outline=INK, width=2)
-d.rectangle([526, 498, 994, 600], fill=(16, 40, 80))  # senate blue
-d.rectangle([526, 586, 994, 600], fill=(185, 28, 28))  # red stripe
-d.rectangle([526, 572, 994, 586], fill=WHITE)
-d.ellipse([710, 506, 810, 570], fill=WHITE, outline=NAVY, width=3)
-d.text((742, 512), "56", font=font(SERIF, 36), fill=NAVY)
-d.text((748, 546), "–44", font=font(SANS, 15), fill=NAVY)
-for sx, sy in [(600, 530), (640, 560), (880, 530), (920, 560)]:
-    d.ellipse([sx - 5, sy - 5, sx + 5, sy + 5], fill=GOLD)
-y = kicker(d, 540, 608, "U.S.  •  POLITICS", font(SANS, 18))
-y = text_block(d, 540, y, "PELTOLA WINS ALASKA; SENATE 56–44",
-               font(SANS, 29), INK, 996 - 540 - 16, 34)
-text_block(d, 540, y + 4, "First Alaska Native elected to the Senate.",
-           font(SANS_R, 19), (60, 60, 60), 996 - 540 - 16, 25)
+def flag(draw, x, y, w, h, stripes):
+    """A little striped flag on a pole, stripes = list of colors top-down."""
+    draw.line([(x, y + h), (x, y - 18)], fill=INK, width=3)
+    n = len(stripes)
+    for i, c in enumerate(stripes):
+        draw.rectangle([x + 2, y + i * h // n, x + w, y + (i + 1) * h // n], fill=c)
 
 
-def small_panel(x0, x1, kick, head, stand, art):
-    d.rectangle([x0, 748, x1, 972], fill=WHITE, outline=INK, width=2)
-    art(x0, x1)
-    y = kicker(d, x0 + 14, 830, kick, font(SANS, 16))
-    y = text_block(d, x0 + 14, y, head, font(SANS, 23), INK, x1 - x0 - 28, 28)
-    text_block(d, x0 + 14, y + 4, stand, font(SANS_R, 17), (60, 60, 60),
-               x1 - x0 - 28, 22)
+def rocket(draw, cx, cy, s):
+    """A small upright rocket with a flame."""
+    body = [(cx - 12 * s, cy + 26 * s), (cx + 12 * s, cy + 26 * s),
+            (cx + 12 * s, cy - 8 * s), (cx, cy - 30 * s), (cx - 12 * s, cy - 8 * s)]
+    draw.polygon(body, fill=(220, 224, 230), outline=INK, width=2)
+    draw.polygon([(cx - 12 * s, cy + 6 * s), (cx - 26 * s, cy + 26 * s),
+                  (cx - 12 * s, cy + 26 * s)], fill=RED)
+    draw.polygon([(cx + 12 * s, cy + 6 * s), (cx + 26 * s, cy + 26 * s),
+                  (cx + 12 * s, cy + 26 * s)], fill=RED)
+    draw.ellipse([cx - 6 * s, cy - 12 * s, cx + 6 * s, cy], fill=TEAL, outline=INK)
+    draw.polygon([(cx - 8 * s, cy + 26 * s), (cx + 8 * s, cy + 26 * s),
+                  (cx, cy + 44 * s)], fill=GOLD)
 
 
-def art_drone(x0, x1):
-    cx, cy = (x0 + x1) // 2, 790
-    d.rectangle([x0 + 2, 820, x1 - 2, 830], fill=(210, 180, 120))  # desert
-    for dx, dy in [(-40, -16), (10, -30), (46, -8)]:
-        d.ellipse([cx + dx - 14, cy + dy - 5, cx + dx + 14, cy + dy + 5],
-                  fill=(60, 60, 60))
-        d.line([cx + dx - 22, cy + dy, cx + dx + 22, cy + dy], fill=(60, 60, 60), width=3)
-    d.arc([cx - 52, cy - 46, cx + 52, cy + 20], start=200, end=340,
-          fill=RED, width=2)
+def ballot_box(draw, x, y, w, h):
+    draw.rectangle([x, y + h * 0.35, x + w, y + h], fill=BLUE, outline=INK, width=2)
+    draw.rectangle([x + w * 0.28, y, x + w * 0.72, y + h * 0.38], fill=(255, 255, 255),
+                   outline=INK, width=2)
+    draw.line([(x + w * 0.5, y - 14), (x + w * 0.62, y + 2)], fill=RED, width=4)
+    draw.line([(x + w * 0.62, y + 2), (x + w * 0.82, y - 22)], fill=RED, width=4)
+    draw.text((x + w * 0.18, y + h * 0.52), "VOTE", font=font(SANS_B, 20), fill=(255, 255, 255))
 
 
-def art_quad(x0, x1):
-    cx, cy = (x0 + x1) // 2, 790
-    d.ellipse([cx - 32, cy - 32, cx + 32, cy + 32], fill=(40, 90, 160),
-              outline=NAVY, width=2)
-    d.ellipse([cx - 13, cy - 32, cx + 13, cy + 32], outline=(180, 210, 235), width=2)
-    d.line([cx - 32, cy, cx + 32, cy], fill=(180, 210, 235), width=2)
-    for dx, dy, col in [(-24, -20, (185, 28, 28)), (24, -20, (0, 57, 166)),
-                        (-24, 20, (255, 153, 51)), (24, 20, (0, 130, 130))]:
-        d.ellipse([cx + dx - 8, cy + dy - 8, cx + dx + 8, cy + dy + 8],
-                  fill=col, outline=WHITE, width=2)
+def drone(draw, cx, cy, s):
+    draw.rectangle([cx - 26 * s, cy - 8 * s, cx + 26 * s, cy + 8 * s],
+                   fill=(70, 74, 80), outline=INK, width=2)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            ax, ay = cx + sx * 34 * s, cy + sy * 16 * s
+            draw.line([(cx + sx * 24 * s, cy + sy * 6 * s), (ax, ay)], fill=INK, width=3)
+            draw.ellipse([ax - 14 * s, ay - 4 * s, ax + 14 * s, ay + 4 * s],
+                         fill=(180, 184, 190), outline=INK)
+    draw.ellipse([cx - 6 * s, cy - 6 * s, cx + 6 * s, cy + 6 * s], fill=RED, outline=INK)
 
 
-def art_ai(x0, x1):
-    cx, cy = (x0 + x1) // 2, 790
-    d.rectangle([cx - 46, cy - 26, cx + 46, cy + 26], fill=(16, 24, 16),
-                outline=(120, 200, 90), width=3)
-    d.text((cx, cy - 14), "GPT-6.2", font=font(SANS, 20), fill=(140, 220, 120),
-           anchor="ma")
-    for ang in range(0, 360, 45):
-        x2 = cx + 58 * math.cos(math.radians(ang))
-        y2 = cy + 58 * math.sin(math.radians(ang))
-        d.line([cx + 52 * math.cos(math.radians(ang)),
-                cy + 52 * math.sin(math.radians(ang)), x2, y2],
-               fill=GOLD, width=3)
+def summit_table(draw, x, y, w, h):
+    draw.ellipse([x, y + h * 0.45, x + w, y + h * 0.95], fill=(122, 82, 52), outline=INK, width=2)
+    for fx, fy, col in ((x + w * 0.22, y, RED), (x + w * 0.72, y, GOLD)):
+        draw.ellipse([fx, fy, fx + 34, fy + 34], fill=col, outline=INK, width=2)
+    draw.rectangle([x + w * 0.42, y + h * 0.28, x + w * 0.58, y + h * 0.45],
+                   fill=(255, 255, 255), outline=INK, width=2)
 
 
-small_panel(28, 344, "MIDDLE EAST  •  GULF",
-            "IRAN'S DRONES REACH KUWAIT",
-            "Kuwait engaged drones at Ali Al Salem base; Bahrain stopped more.",
-            art_drone)
-small_panel(360, 664, "ASIA-PACIFIC  •  SECURITY",
-            "QUAD MEETS IN MANILA",
-            "First leaders' meeting in two years; a Philippines deal.",
-            art_quad)
-small_panel(680, 996, "TECH  •  AI",
-            "OPENAI LAUNCHES GPT-6.2",
-            "New Astra and Sol models arrive with lower API prices.",
-            art_ai)
+def chip(draw, x, y, s):
+    draw.rectangle([x, y, x + 64 * s, y + 64 * s], fill=(40, 40, 48), outline=GOLD, width=3)
+    draw.rectangle([x + 16 * s, y + 16 * s, x + 48 * s, y + 48 * s], fill=TEAL, outline=GOLD)
+    for i in range(4):
+        off = 12 * s + i * 14 * s
+        draw.line([(x + off, y - 10 * s), (x + off, y)], fill=GOLD, width=3)
+        draw.line([(x + off, y + 64 * s), (x + off, y + 74 * s)], fill=GOLD, width=3)
+        draw.line([(x - 10 * s, y + off), (x, y + off)], fill=GOLD, width=3)
+        draw.line([(x + 64 * s, y + off), (x + 74 * s, y + off)], fill=GOLD, width=3)
 
-# ---------- footer ----------
-d.text((512, 986), "18 NOVEMBER 2026  •  From the day's wires and broadcasters",
-       font=font(SANS_R, 16), fill=GREY, anchor="ma")
 
-img.save("entry.png", format="JPEG", quality=88)
-print("wrote entry.png")
+def starfield(draw, cx, cy, spread, n=6):
+    for i in range(n):
+        ang = -90 + i * (360 / n)
+        x = cx + spread * math.cos(math.radians(ang))
+        y = cy + spread * math.sin(math.radians(ang))
+        draw.ellipse([x - 4, y - 4, x + 4, y + 4], fill=(255, 255, 255))
+
+
+def draw_page():
+    img = Image.new("RGB", (W, H), PAPER)
+    d = ImageDraw.Draw(img)
+
+    # ---- Masthead band ----
+    d.rectangle([0, 0, W, 128], fill=INK)
+    d.text((36, 18), "THE WORLD TODAY", font=font(SERIF_B, 62), fill=(247, 243, 232))
+    d.text((36, 92), "WEDNESDAY 18 NOVEMBER 2026  |  ONE DAY, SIX STORIES",
+           font=font(SANS_B, 20), fill=GOLD)
+    d.text((W - 36 - d.textlength("No. 322", font=font(SANS, 18)), 96),
+           "No. 322", font=font(SANS, 18), fill=(200, 200, 200))
+    rule(d, 0, 128, W, 4, RED)
+    d.text((36, 136), "SHENZHEN  •  DEEP SPACE  •  ALASKA  •  KUWAIT  •  MANILA  •  SILICON VALLEY",
+           font=font(SANS_B, 13), fill=GREY)
+
+    # ---- Lead panel: Xi & Putin in Shenzhen ----
+    lx, ly, lw, lh = 36, 158, 952, 280
+    d.rectangle([lx, ly, lx + lw, ly + lh], fill=CARD, outline=INK, width=3)
+    d.rectangle([lx, ly, lx + lw, ly + 40], fill=RED)
+    d.text((lx + 18, ly + 7), "LEAD  —  SHENZHEN", font=font(SANS_B, 22), fill=(255, 255, 255))
+    summit_table(d, lx + 640, ly + 86, 260, 140)
+    flag(d, lx + 660, ly + 172, 74, 34, [RED, (255, 255, 255), RED])
+    flag(d, lx + 830, ly + 172, 74, 34, [(255, 255, 255), BLUE, RED])
+    y = para(d, (lx + 20, ly + 56),
+             "Xi and Putin meet in Shenzhen", font(SERIF_B, 38), 590, 46)
+    y = para(d, (lx + 20, y + 6),
+             "China's Xi Jinping and Russia's Vladimir Putin hold talks "
+             "in Shenzhen, on the eve of Thursday's summit with Trump.",
+             font(SANS, 22), 590, 29)
+    d.text((lx + 20, y + 8), "The trilateral is set for tomorrow.",
+           font=font(SANS_B, 22), fill=RED)
+
+    # ---- Story grid: 3 columns x 2 rows ----
+    gx, gy = 36, 452
+    cw, ch, gap = 304, 252, 14
+    stories = [
+        ("SPACE", TEAL, "rocket",
+         "Voyager 1 one light-day out",
+         "NASA's Voyager 1 is now 16 billion miles out. "
+         "Its signal takes 24 hours to reach Earth."),
+        ("UNITED STATES", BLUE, "ballot",
+         "Peltola wins Alaska",
+         "Mary Peltola takes Alaska's Senate seat, giving Democrats "
+         "a 56-44 majority — the first Alaska Native senator."),
+        ("MIDDLE EAST", RED, "drone",
+         "Iran's drones reach Kuwait",
+         "Drones from Iran reached Kuwait; Ali Al Salem base "
+         "engaged them, and Bahrain intercepted more."),
+        ("ASIA", GOLD, "table",
+         "Quad leaders meet in Manila",
+         "Leaders of the Quad meet in Manila, their first summit in "
+         "over two years."),
+        ("TECHNOLOGY", (90, 60, 140), "chip",
+         "OpenAI launches GPT-6.2",
+         "OpenAI unveils GPT-6.2 Astra and Sol, with lower prices "
+         "for developers using its API."),
+        ("THE DAY IN BRIEF", GREY, "globe",
+         "Six stories, one day",
+         "From Shenzhen to deep space, from Manila to Washington: "
+         "Wednesday 18 November 2026 in one page."),
+    ]
+    for i, (kicker, accent, motif, headline, body) in enumerate(stories):
+        col, row = i % 3, i // 3
+        x = gx + col * (cw + gap)
+        yy = gy + row * (ch + gap)
+        d.rectangle([x, yy, x + cw, yy + ch], fill=CARD, outline=INK, width=2)
+        d.rectangle([x, yy, x + cw, yy + 30], fill=accent)
+        d.text((x + 12, yy + 5), kicker, font=font(SANS_B, 16), fill=(255, 255, 255))
+        my = yy + 44
+        if motif == "rocket":
+            rocket(d, x + 48, my + 24, 0.85)
+            d.ellipse([x + 92, my + 4, x + 168, my + 80], fill=(18, 24, 44))
+            starfield(d, x + 130, my + 42, 24, 6)
+            d.text((x + 180, my + 22), "1 light-day", font=font(SANS_B, 18), fill=TEAL)
+            d.text((x + 180, my + 46), "16bn miles", font=font(SANS, 16), fill=INK)
+        elif motif == "ballot":
+            ballot_box(d, x + 30, my + 8, 92, 84)
+            d.text((x + 142, my + 18), "56 - 44", font=font(SERIF_B, 34), fill=BLUE)
+            d.text((x + 142, my + 60), "Senate", font=font(SANS_B, 18), fill=INK)
+        elif motif == "drone":
+            drone(d, x + 80, my + 44, 1.0)
+            d.text((x + 176, my + 20), "Ali Al Salem", font=font(SANS_B, 18), fill=INK)
+            d.text((x + 176, my + 46), "Bahrain", font=font(SANS, 18), fill=INK)
+            d.text((x + 176, my + 70), "intercepted", font=font(SANS, 18), fill=INK)
+        elif motif == "table":
+            summit_table(d, x + 24, my + 4, 130, 84)
+            d.text((x + 168, my + 8), "4 leaders", font=font(SANS_B, 16), fill=INK)
+            d.text((x + 168, my + 30), "Manila", font=font(SANS, 16), fill=INK)
+            d.text((x + 168, my + 52), "trade deal", font=font(SANS, 16), fill=INK)
+        elif motif == "chip":
+            chip(d, x + 30, my + 6, 1.0)
+            d.text((x + 128, my + 14), "Astra", font=font(SERIF_B, 26), fill=(90, 60, 140))
+            d.text((x + 128, my + 48), "Sol", font=font(SERIF_B, 26), fill=(90, 60, 140))
+            d.text((x + 128, my + 76), "cheaper API", font=font(SANS, 16), fill=INK)
+        else:
+            d.ellipse([x + 26, my + 6, x + 116, my + 96], fill=TEAL, outline=INK, width=2)
+            d.ellipse([x + 52, my + 6, x + 90, my + 96], outline=(255, 255, 255), width=2)
+            d.line([(x + 26, my + 51), (x + 116, my + 51)], fill=(255, 255, 255), width=2)
+            d.text((x + 132, my + 26), "18 NOV", font=font(SERIF_B, 28), fill=INK)
+            d.text((x + 132, my + 60), "2026", font=font(SERIF_B, 28), fill=RED)
+        ty = yy + 140
+        ty = para(d, (x + 14, ty), headline, font(SERIF_B, 21), cw - 28, 25)
+        para(d, (x + 14, ty + 2), body, font(SANS, 16), cw - 28, 19)
+
+    # ---- Footer ----
+    rule(d, 36, 988, 988, 2)
+    d.text((36, 996), "Drawn in code  •  Wednesday 18 November 2026",
+           font=font(SANS, 15), fill=GREY)
+    d.text((W - 36 - d.textlength("THE WORLD TODAY", font=font(SANS_B, 15)), 996),
+           "THE WORLD TODAY", font=font(SANS_B, 15), fill=GREY)
+    return img
+
+
+if __name__ == "__main__":
+    page = draw_page()
+    page.save("entry.png", format="PNG", optimize=True)
+    print("wrote entry.png", page.size)
